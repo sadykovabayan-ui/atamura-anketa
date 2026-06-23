@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Atamura Group — Анкета кандидата</title>
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <main class="wrap">
+
+    <!-- START -->
+    <section id="screen-start" class="sheet">
+      <header class="sheet-head">
+        <div class="logo"><span class="emblem"><i></i><i></i><i></i><i></i></span><span class="brand">ATAMURA</span></div>
+        <div class="titleblock">АНКЕТА&nbsp;КАНДИДАТА<br>28&nbsp;ВОПРОСОВ&nbsp;·&nbsp;~20&nbsp;МИН</div>
+      </header>
+      <h1>Анкета кандидата</h1>
+      <p class="lead">Спасибо, что откликнулись. Заполнение займёт около 20 минут. Отвечайте честно — «правильных» и «неправильных» людей здесь нет, нам важно понять, как вам комфортнее работать.</p>
+      <label class="field"><span>Фамилия и имя</span><input id="in-fio" type="text" autocomplete="name" /></label>
+      <label class="field"><span>Вакансия, на которую откликнулись</span><input id="in-vacancy" type="text" /></label>
+      <label class="field"><span>Телефон</span><input id="in-phone" type="tel" inputmode="tel" placeholder="+7 ___ ___ __ __" /></label>
+      <p id="start-error" class="error" hidden>Заполните все поля, чтобы начать.</p>
+      <button id="btn-start" class="btn">НАЧАТЬ&nbsp;→</button>
+    </section>
+
+    <!-- QUIZ -->
+    <section id="screen-quiz" class="sheet" hidden>
+      <header class="sheet-head">
+        <div class="logo"><span class="emblem"><i></i><i></i><i></i><i></i></span><span class="brand">ATAMURA</span></div>
+        <div class="titleblock">АНКЕТА&nbsp;КАНДИДАТА<br><span id="sheet-no">ЛИСТ&nbsp;01&nbsp;·&nbsp;28</span></div>
+      </header>
+      <p class="kicker" id="kicker">ВОПРОС 01 / 28</p>
+      <h2 class="q-text" id="q-text"></h2>
+      <div class="options" id="options"></div>
+      <div id="rank-area" hidden></div>
+      <div class="dim" id="dim"></div>
+      <div class="dim-meta"><span id="dim-left">01 / 28</span><span class="timer" id="timer">00:00</span></div>
+      <div class="nav">
+        <button id="btn-prev" class="btn ghost">← НАЗАД</button>
+        <button id="btn-next" class="btn">ДАЛЕЕ&nbsp;→</button>
+      </div>
+    </section>
+
+    <!-- DONE -->
+    <section id="screen-done" class="sheet center" hidden>
+      <header class="sheet-head">
+        <div class="logo"><span class="emblem"><i></i><i></i><i></i><i></i></span><span class="brand">ATAMURA</span></div>
+        <div class="titleblock">АНКЕТА&nbsp;КАНДИДАТА<br>ЗАВЕРШЕНО</div>
+      </header>
+      <div class="done-mark">✓</div>
+      <h1>Спасибо за уделённое время</h1>
+      <p class="lead">Мы получили ваши ответы и обязательно вернёмся к вам с обратной связью.</p>
+    </section>
+
+  </main>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
