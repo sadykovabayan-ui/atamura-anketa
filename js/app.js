@@ -2,7 +2,7 @@ import * as Q from './questions.js';
 import { buildResult } from './scoring.js';
 
 // ▼▼▼ ВСТАВЬТЕ СЮДА URL ВЕБ-ПРИЛОЖЕНИЯ GOOGLE APPS SCRIPT (см. README) ▼▼▼
-const ENDPOINT = 'https://script.google.com/macros/s/AKfycby2fd3DNvk-nNt7dRLfvD_OMJvuub_QDsWS22U63trlUcdEfVAH2ZaydFZxMBaxxLg/exec';
+const ENDPOINT = 'https://script.google.com/macros/s/AKfycbzGfjKSeXIyMj9U3jcOjbnosWDskjjWdLmpfgrbar1XfC7fvbPBmjLI9bKobfXO9DcZ/exec';
 
 const banks = {
   LOGIC: Q.LOGIC, CRITICAL: Q.CRITICAL, ATTENTION: Q.ATTENTION,
