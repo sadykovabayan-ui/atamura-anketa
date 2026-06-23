@@ -1,45 +1,45 @@
 import * as Q from './questions.js';
 import { buildResult } from './scoring.js';
 
-// ▼▼▼ ВСТАВЬТЕ СЮДА URL ВЕБ-ПРИЛОЖЕНИЯ GOOGLE APPS SCRIPT (см. README, шаг 1) ▼▼▼
+// ▼▼▼ ВСТАВЬТЕ СЮДА URL ВЕБ-ПРИЛОЖЕНИЯ GOOGLE APPS SCRIPT (см. README) ▼▼▼
 const ENDPOINT = 'https://script.google.com/macros/s/AKfycby2fd3DNvk-nNt7dRLfvD_OMJvuub_QDsWS22U63trlUcdEfVAH2ZaydFZxMBaxxLg/exec';
 
-const banks = { CRITICAL: Q.CRITICAL, ATTENTION: Q.ATTENTION, PERSISTENCE: Q.PERSISTENCE,
-  ADAPTABILITY: Q.ADAPTABILITY, BELBIN: Q.BELBIN, MOTIVATION_CHOICES: Q.MOTIVATION_CHOICES, MOTIVES: Q.MOTIVES };
+const banks = {
+  LOGIC: Q.LOGIC, CRITICAL: Q.CRITICAL, ATTENTION: Q.ATTENTION,
+  PERSISTENCE: Q.PERSISTENCE, ADAPTABILITY: Q.ADAPTABILITY, BELBIN: Q.BELBIN,
+  MOTIVATION_CHOICES: Q.MOTIVATION_CHOICES, MOTIVES: Q.MOTIVES, RELIABILITY: Q.RELIABILITY,
+};
 
-// Перемешиваем варианты в каждом вопросе один раз за сессию, чтобы позиция ответа
-// ничего не подсказывала (правильный/«лучший» вариант не стоит всегда на одном месте).
-// Метки (correct/score/role/motive) едут вместе с вариантом, поэтому подсчёт не ломается.
+// Перемешиваем варианты только в вопросах с выбором/мультивыбором (шкалу — нет, она упорядочена).
 function shuffle(arr) {
   for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
 }
-[Q.CRITICAL, Q.ATTENTION, Q.PERSISTENCE, Q.ADAPTABILITY, Q.BELBIN, Q.MOTIVATION_CHOICES]
-  .forEach(block => block.forEach(q => shuffle(q.options)));
+for (const s of Q.SECTIONS) {
+  if (s.type === 'choice' || s.type === 'multi') for (const q of s.items) shuffle(q.options);
+}
 
-// Flatten into an ordered list of "steps". The motivation ranking (M1) comes right
-// before the motivation choice questions. Block names are intentionally NOT shown to
-// the candidate — only neutral numbering — so answers cannot be gamed.
+// Список шагов. kind: 'choice' | 'scale' | 'multi' | 'rank'.
 const steps = [];
-for (const b of Q.SINGLE_BLOCKS) {
-  if (b.key === 'motivationChoices') steps.push({ kind: 'rank', q: Q.MOTIVATION_RANK });
-  // Белбин — множественный выбор (можно отметить несколько ролей-поведений); остальные — один.
-  for (const q of b.items) steps.push({ kind: 'single', q, multi: b.key === 'belbin' });
+for (const s of Q.SECTIONS) {
+  if (s.rankFirst) steps.push({ kind: 'rank', q: Q.MOTIVATION_RANK });
+  for (const q of s.items) steps.push({ kind: s.type, q });
 }
 const TOTAL = steps.length;
 const pad2 = (n) => String(n).padStart(2, '0');
 
 const meta = {};
-const answers = {};          // questionId -> chosen index; M1 -> ranked array
+const answers = {};
 let rankOrder = [...Q.MOTIVES];
 let cur = 0;
 let startMs = 0;
 let timerId = null;
+let qTimerId = null;
 
 const $ = (id) => document.getElementById(id);
-const show = (id) => { ['screen-start','screen-quiz','screen-done'].forEach(s => { $(s).hidden = s !== id; }); };
+const show = (id) => { ['screen-start', 'screen-quiz', 'screen-done'].forEach(s => { $(s).hidden = s !== id; }); };
 
 $('btn-start').addEventListener('click', () => {
   const fio = $('in-fio').value.trim(), vacancy = $('in-vacancy').value.trim(), phone = $('in-phone').value.trim();
@@ -56,17 +56,37 @@ function tick() {
   $('timer').textContent = `${pad2(Math.floor(s / 60))}:${pad2(s % 60)}`;
 }
 
+function clearQTimer() { if (qTimerId) { clearInterval(qTimerId); qTimerId = null; } }
+function startQTimer(seconds) {
+  clearQTimer();
+  let left = seconds;
+  const el = $('qtimer');
+  const showLeft = () => { el.textContent = `⏱ 0:${pad2(left)}`; el.classList.toggle('low', left <= 10); };
+  el.hidden = false; showLeft();
+  qTimerId = setInterval(() => {
+    left--;
+    if (left <= 0) { clearQTimer(); el.hidden = true; goNext(true); return; }
+    showLeft();
+  }, 1000);
+}
+
 function render() {
+  clearQTimer();
   const step = steps[cur];
   $('kicker').textContent = `ВОПРОС ${pad2(cur + 1)} / ${TOTAL}`;
   $('sheet-no').textContent = `ЛИСТ ${pad2(cur + 1)} · ${TOTAL}`;
   $('dim-left').textContent = `${pad2(cur + 1)} / ${TOTAL}`;
   $('btn-prev').disabled = cur === 0;
   $('btn-next').textContent = cur === TOTAL - 1 ? 'ЗАВЕРШИТЬ' : 'ДАЛЕЕ →';
+  $('qtimer').hidden = true;
   renderDim();
 
-  if (step.kind === 'single') { renderSingle(step.q, step.multi); $('options').hidden = false; $('rank-area').hidden = true; }
-  else { renderRank(step.q); $('options').hidden = true; $('rank-area').hidden = false; $('multi-hint').hidden = true; }
+  if (step.kind === 'rank') {
+    renderRank(step.q); $('options').hidden = true; $('rank-area').hidden = false; $('multi-hint').hidden = true;
+  } else {
+    renderSingle(step.q, step.kind === 'multi'); $('options').hidden = false; $('rank-area').hidden = true;
+  }
+  if (step.q.timed) startQTimer(step.q.timed);
 }
 
 function renderDim() {
@@ -82,9 +102,9 @@ function renderSingle(q, multi) {
   $('q-text').textContent = q.text;
   $('multi-hint').hidden = !multi;
   const box = $('options'); box.innerHTML = '';
-  const cur = answers[q.id];
+  const cur2 = answers[q.id];
   q.options.forEach((opt, idx) => {
-    const sel = multi ? (Array.isArray(cur) && cur.includes(idx)) : (cur === idx);
+    const sel = multi ? (Array.isArray(cur2) && cur2.includes(idx)) : (cur2 === idx);
     const el = document.createElement('div');
     el.className = 'option' + (sel ? ' selected' : '');
     el.innerHTML = `<span class="box">${sel ? '✓' : ''}</span><span>${opt.t}</span>`;
@@ -103,7 +123,6 @@ function renderSingle(q, multi) {
   });
 }
 
-// Ranking with up/down buttons — reliable on both desktop and mobile (no drag-and-drop).
 function renderRank(q) {
   $('q-text').textContent = q.text;
   const area = $('rank-area'); area.innerHTML = '';
@@ -133,26 +152,32 @@ function renderRank(q) {
   });
 }
 
-$('btn-prev').addEventListener('click', () => { if (cur > 0) { cur--; render(); } });
-$('btn-next').addEventListener('click', () => {
+function goNext(force) {
   const step = steps[cur];
-  if (step.kind === 'single') {
-    const a = answers[step.q.id];
-    const answered = step.multi ? (Array.isArray(a) && a.length > 0) : (a != null);
-    if (!answered) { flashNext(); return; }
+  if (!force) {
+    if (step.kind === 'multi') {
+      const a = answers[step.q.id];
+      if (!(Array.isArray(a) && a.length > 0)) { flashNext(); return; }
+    } else if (step.kind !== 'rank') {
+      if (answers[step.q.id] == null) { flashNext(); return; }
+    }
   }
-  if (step.kind === 'rank') answers.M1 = rankOrder; // ranking always has a default order
+  if (step.kind === 'rank') answers.M1 = rankOrder;
+  clearQTimer();
   if (cur === TOTAL - 1) { finish(); return; }
   cur++; render();
-});
-function flashNext() { const b = $('btn-next'); const prev = b.textContent; b.textContent = 'ВЫБЕРИТЕ ОТВЕТ'; setTimeout(() => { b.textContent = prev; }, 900); }
+}
+
+$('btn-prev').addEventListener('click', () => { if (cur > 0) { cur--; render(); } });
+$('btn-next').addEventListener('click', () => goNext(false));
+function flashNext() { const b = $('btn-next'); const p = b.textContent; b.textContent = 'ВЫБЕРИТЕ ОТВЕТ'; setTimeout(() => { b.textContent = p; }, 900); }
 
 async function finish() {
-  clearInterval(timerId);
+  clearInterval(timerId); clearQTimer();
   const result = buildResult({ ...meta, ts: new Date().toISOString() }, answers, banks);
   show('screen-done');
   try {
     await fetch(ENDPOINT, { method: 'POST', mode: 'no-cors',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(result) });
-  } catch (e) { /* кандидат уже видит «спасибо»; ошибку показывать не нужно */ }
+  } catch (e) { /* кандидат уже видит «спасибо» */ }
 }
