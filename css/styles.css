@@ -55,6 +55,7 @@ h1{font-weight:700;font-size:30px;line-height:1.2;letter-spacing:.01em;margin:0 
 .error{color:var(--red);font-size:15px;margin:0 0 16px}
 
 .kicker{font-size:13px;letter-spacing:.18em;color:var(--gold-ink);margin:0 0 8px}
+.multi-hint{font-size:14px;color:var(--gold-ink);margin:0 0 14px;font-style:italic}
 h2.q-text{font-size:25px;font-weight:700;line-height:1.32;margin:6px 0 24px;color:var(--ink-deep)}
 
 .options{display:flex;flex-direction:column;gap:10px}

@@ -21,10 +21,14 @@ export function scoreScale(answers, block) {
 export function scoreBelbin(answers, block) {
   const counts = {};
   for (const q of block) {
-    const idx = answers[q.id];
-    if (idx != null && q.options[idx]) {
-      const role = q.options[idx].role;
-      counts[role] = (counts[role] || 0) + 1;
+    const a = answers[q.id];
+    // multi-select: a is an array of indices; single-select: a is one index.
+    const idxs = Array.isArray(a) ? a : (a != null ? [a] : []);
+    for (const idx of idxs) {
+      if (q.options[idx]) {
+        const role = q.options[idx].role;
+        counts[role] = (counts[role] || 0) + 1;
+      }
     }
   }
   const ordered = Object.entries(counts)

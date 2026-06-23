@@ -25,7 +25,8 @@ function shuffle(arr) {
 const steps = [];
 for (const b of Q.SINGLE_BLOCKS) {
   if (b.key === 'motivationChoices') steps.push({ kind: 'rank', q: Q.MOTIVATION_RANK });
-  for (const q of b.items) steps.push({ kind: 'single', q });
+  // Белбин — множественный выбор (можно отметить несколько ролей-поведений); остальные — один.
+  for (const q of b.items) steps.push({ kind: 'single', q, multi: b.key === 'belbin' });
 }
 const TOTAL = steps.length;
 const pad2 = (n) => String(n).padStart(2, '0');
@@ -64,8 +65,8 @@ function render() {
   $('btn-next').textContent = cur === TOTAL - 1 ? 'ЗАВЕРШИТЬ' : 'ДАЛЕЕ →';
   renderDim();
 
-  if (step.kind === 'single') { renderSingle(step.q); $('options').hidden = false; $('rank-area').hidden = true; }
-  else { renderRank(step.q); $('options').hidden = true; $('rank-area').hidden = false; }
+  if (step.kind === 'single') { renderSingle(step.q, step.multi); $('options').hidden = false; $('rank-area').hidden = true; }
+  else { renderRank(step.q); $('options').hidden = true; $('rank-area').hidden = false; $('multi-hint').hidden = true; }
 }
 
 function renderDim() {
@@ -77,15 +78,27 @@ function renderDim() {
   }
 }
 
-function renderSingle(q) {
+function renderSingle(q, multi) {
   $('q-text').textContent = q.text;
+  $('multi-hint').hidden = !multi;
   const box = $('options'); box.innerHTML = '';
+  const cur = answers[q.id];
   q.options.forEach((opt, idx) => {
-    const sel = answers[q.id] === idx;
+    const sel = multi ? (Array.isArray(cur) && cur.includes(idx)) : (cur === idx);
     const el = document.createElement('div');
     el.className = 'option' + (sel ? ' selected' : '');
     el.innerHTML = `<span class="box">${sel ? '✓' : ''}</span><span>${opt.t}</span>`;
-    el.addEventListener('click', () => { answers[q.id] = idx; render(); });
+    el.addEventListener('click', () => {
+      if (multi) {
+        const arr = Array.isArray(answers[q.id]) ? answers[q.id].slice() : [];
+        const at = arr.indexOf(idx);
+        if (at >= 0) arr.splice(at, 1); else arr.push(idx);
+        answers[q.id] = arr;
+      } else {
+        answers[q.id] = idx;
+      }
+      render();
+    });
     box.appendChild(el);
   });
 }
@@ -123,7 +136,11 @@ function renderRank(q) {
 $('btn-prev').addEventListener('click', () => { if (cur > 0) { cur--; render(); } });
 $('btn-next').addEventListener('click', () => {
   const step = steps[cur];
-  if (step.kind === 'single' && answers[step.q.id] == null) { flashNext(); return; }
+  if (step.kind === 'single') {
+    const a = answers[step.q.id];
+    const answered = step.multi ? (Array.isArray(a) && a.length > 0) : (a != null);
+    if (!answered) { flashNext(); return; }
+  }
   if (step.kind === 'rank') answers.M1 = rankOrder; // ranking always has a default order
   if (cur === TOTAL - 1) { finish(); return; }
   cur++; render();
