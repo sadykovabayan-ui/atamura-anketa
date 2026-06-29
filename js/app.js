@@ -45,13 +45,14 @@ let qTimerId = null;
 const $ = (id) => document.getElementById(id);
 const show = (id) => { ['screen-start', 'screen-quiz', 'screen-done'].forEach(s => { $(s).hidden = s !== id; }); };
 
-// Если HR прислал ссылку с меткой ?cv=<резюме>, подставим её в поле резюме.
-try { const cv = new URLSearchParams(location.search).get('cv'); if (cv) $('in-resume').value = cv; } catch (e) {}
+// Метки из ссылки: ?cv=<резюме> подставим в поле; ?ref=<id сделки Bitrix> пробросим в итог.
+let urlRef = '';
+try { const p = new URLSearchParams(location.search); if (p.get('cv')) $('in-resume').value = p.get('cv'); urlRef = p.get('ref') || ''; } catch (e) {}
 
 $('btn-start').addEventListener('click', () => {
   const fio = $('in-fio').value.trim(), vacancy = $('in-vacancy').value.trim(), phone = $('in-phone').value.trim();
   if (!fio || !vacancy || !phone) { $('start-error').hidden = false; return; }
-  meta.fio = fio; meta.vacancy = vacancy; meta.phone = phone; meta.resume = $('in-resume').value.trim();
+  meta.fio = fio; meta.vacancy = vacancy; meta.phone = phone; meta.resume = $('in-resume').value.trim(); meta.ref = urlRef;
   answers.M1 = rankOrder;
   startMs = Date.now();
   tick(); timerId = setInterval(tick, 1000);
