@@ -92,7 +92,7 @@ export function buildResult(meta, answers, banks) {
   const reliability = scoreReliability(answers, banks.RELIABILITY);
   const total = overall(logic, critical, attention, persistence, adaptability);
   return {
-    fio: meta.fio, vacancy: meta.vacancy, phone: meta.phone, ts: meta.ts,
+    fio: meta.fio, vacancy: meta.vacancy, phone: meta.phone, resume: meta.resume || '', ts: meta.ts,
     logic, critical, attention, persistence, adaptability,
     overall: total.score, band: total.band,
     levels: {

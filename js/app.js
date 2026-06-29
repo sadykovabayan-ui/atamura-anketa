@@ -22,10 +22,14 @@ for (const s of Q.SECTIONS) {
 }
 
 // Список шагов. kind: 'choice' | 'scale' | 'multi' | 'rank'.
+// Порядок вопросов ВНУТРИ каждого блока перемешивается для каждого кандидата
+// (сами блоки идут в заданном порядке — это сохраняет логику теста и спецпроверки).
 const steps = [];
 for (const s of Q.SECTIONS) {
   if (s.rankFirst) steps.push({ kind: 'rank', q: Q.MOTIVATION_RANK });
-  for (const q of s.items) steps.push({ kind: s.type, q });
+  const items = s.items.slice();
+  shuffle(items);
+  for (const q of items) steps.push({ kind: s.type, q });
 }
 const TOTAL = steps.length;
 const pad2 = (n) => String(n).padStart(2, '0');
@@ -41,10 +45,13 @@ let qTimerId = null;
 const $ = (id) => document.getElementById(id);
 const show = (id) => { ['screen-start', 'screen-quiz', 'screen-done'].forEach(s => { $(s).hidden = s !== id; }); };
 
+// Если HR прислал ссылку с меткой ?cv=<резюме>, подставим её в поле резюме.
+try { const cv = new URLSearchParams(location.search).get('cv'); if (cv) $('in-resume').value = cv; } catch (e) {}
+
 $('btn-start').addEventListener('click', () => {
   const fio = $('in-fio').value.trim(), vacancy = $('in-vacancy').value.trim(), phone = $('in-phone').value.trim();
   if (!fio || !vacancy || !phone) { $('start-error').hidden = false; return; }
-  meta.fio = fio; meta.vacancy = vacancy; meta.phone = phone;
+  meta.fio = fio; meta.vacancy = vacancy; meta.phone = phone; meta.resume = $('in-resume').value.trim();
   answers.M1 = rankOrder;
   startMs = Date.now();
   tick(); timerId = setInterval(tick, 1000);
